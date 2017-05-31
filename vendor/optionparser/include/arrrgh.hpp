@@ -229,6 +229,7 @@ namespace arrrgh
 		//
 		virtual std::string converted_value_string() const = 0;
 		virtual bool has_default_value() const = 0;
+		virtual ~argument_abstract( ) { };
 
 	protected:
 
@@ -266,7 +267,7 @@ namespace arrrgh
 
 		virtual bool required_value() const = 0;
 
-		void assign( const std::string& givenKey, std::string&& valueString )
+		void assign( const std::string& /* givenKey */, std::string&& valueString )
 		{
 			m_assigned = true;
 
