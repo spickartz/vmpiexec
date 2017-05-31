@@ -94,6 +94,7 @@ link_directories(${install_dir}/lib)
 ########
 
 include_directories(include)
+include_directories(vendor/optionparser/include)
 
 ########
 # Compiling and linking

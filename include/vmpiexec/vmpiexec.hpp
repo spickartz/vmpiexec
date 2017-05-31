@@ -13,4 +13,7 @@
 
 #include <fast-lib/log.hpp>
 
+// parse the command-line options
+void parse_cmd_options(int argc, char const *argv[]);
+
 #endif /* end of include guard: vmpiexec_hpp */
