@@ -8,8 +8,10 @@
  * Some rights reserved. See LICENSE
  */
 #include <arrrgh.hpp>
+#include <algorithm>
 
 #include "vmpiexec/vmpiexec.hpp"
+#include "vmpiexec/virt_cluster.hpp"
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(vmpiexec_log, "vmpiexec")
@@ -18,7 +20,7 @@ FASTLIB_LOG_SET_LEVEL_GLOBAL(vmpiexec_log, trace);
 // default command-line arguments
 static size_t doms_per_host = 1;
 static std::string mpiexec_args = "";
-static host_listT host_list = { "localhost" };
+static host_listT host_list { "localhost" };
 
 // parse the command-line options
 void parse_cmd_options(int argc, char const *argv[]) {
@@ -28,6 +30,8 @@ void parse_cmd_options(int argc, char const *argv[]) {
 	const auto &host_list_arg = parser.add<std::string>("hosts", "A comma-seperated list of hosts.", 'H', arrrgh::Optional);
 	const auto &doms_per_host_arg =
 		parser.add<size_t>("doms-per-host", "The amount of domains created per node.", 'd', arrrgh::Optional);
+	const auto &help =
+		parser.add<bool>("help", "PRint this help message.", 'h', arrrgh::Optional);
 
 	// parse the options
 	try {
@@ -40,8 +44,32 @@ void parse_cmd_options(int argc, char const *argv[]) {
 
 	// Get argument values.
 	try {
+		// exit on help
+		if (help.value()) {
+			exit(-1);
+		}
+
 		doms_per_host = doms_per_host_arg.value();
-		// TODO: parse host list
+
+		// parse host list
+		std::string host_list_str = host_list_arg.value();
+		if (!host_list_str.empty()) {
+			size_t host_cnt = std::count(host_list_str.begin(), host_list_str.end(), ',');
+
+			host_list.clear();
+			host_list.reserve(host_cnt);
+			size_t start = 0, end = 0;
+			while ((end = host_list_str.find(',', start)) != std::string::npos) {
+				if (end != start) {
+					host_list.emplace_back(host_list_str.substr(start, end - start));
+				}
+				start = end + 1;
+			}
+			if (end != start && !host_list_str.substr(start).empty()) {
+				host_list.emplace_back(host_list_str.substr(start));
+			};
+		}
+		FASTLIB_LOG(vmpiexec_log, trace) << "Hostlist (" << host_list.size() << "): " << host_list;
 
 		// create mpiexec call
 		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += " " + arg; });
@@ -53,24 +81,21 @@ void parse_cmd_options(int argc, char const *argv[]) {
 }
 
 int main(int argc, char const *argv[]) {
+	FASTLIB_LOG(vmpiexec_log, debug) << "Parsing command-line options ...";
 	parse_cmd_options(argc, argv);
-	FASTLIB_LOG(vmpiexec_log, trace) << "Command-line options parsed.";
 
-	host_listT virt_cluster = start_virtual_cluster(host_list, doms_per_host);
-	execute_command(virt_cluster, mpiexec_args);
-	stop_virtual_cluster(host_list);
+	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
+	virt_clusterT virt_cluster(host_list, doms_per_host);
+	virt_cluster.start();
+
+	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
+	execute_command(virt_cluster.nodes, mpiexec_args);
+
+	FASTLIB_LOG(vmpiexec_log, debug) << "Stopping virtual cluster ...";
+	virt_cluster.stop();
+
+	FASTLIB_LOG(vmpiexec_log, debug) << "Done!";
 	return 0;
-}
-
-// start all domains and wait until ready
-host_listT start_virtual_cluster(host_listT host_list, size_t doms_per_host) {
-	host_listT virt_cluster;
-
-	return virt_cluster;
-}
-
-// stop all domains and wait until ready
-void stop_virtual_cluster(host_listT host_list) {
 }
 
 // call mpiexec and run app on virt_cluster
