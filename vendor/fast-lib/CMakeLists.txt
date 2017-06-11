@@ -31,7 +31,7 @@ if(BUILD_SHARED_LIBS)
 	message(FATAL_ERROR "BUILD_SHARED_LIBS=ON is not supported yet. Use static libs instead.")
 endif()
 
-# set(ENABLE_LOGGING ON CACHE BOOL "Enable logging.")
+set(ENABLE_LOGGING ON CACHE BOOL "Enable logging.")
 if(ENABLE_LOGGING)
 	add_definitions(-DFASTLIB_ENABLE_LOGGING)
 endif()
@@ -134,7 +134,9 @@ set(HEADERS
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/agent/mmbwmon/reply.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/agent/mmbwmon/stop.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/agent/mmbwmon/restart.hpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/agent/mmbwmon/system_info.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/migfra/pci_id.hpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/migfra/dhcp_info.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/migfra/ivshmem.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/migfra/time_measurement.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/fast-lib/message/migfra/result.hpp"
@@ -154,7 +156,9 @@ set(SRC
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/agent/mmbwmon/reply.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/agent/mmbwmon/stop.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/agent/mmbwmon/restart.cpp"
+ 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/agent/mmbwmon/system_info.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/migfra/pci_id.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/migfra/dhcp_info.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/migfra/ivshmem.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/migfra/time_measurement.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/message/migfra/result.cpp"
@@ -173,7 +177,7 @@ include_directories(SYSTEM ${EXTERNAL_INCLUDES}/fast-lib/external)
 ########
 # mosquitto
 ExternalProject_Add(mosquitto
-	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/mosquitto-1.3.5
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/mosquitto-1.4.12
 	CMAKE_COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} cmake
 	CMAKE_ARGS -DWITH_SRV=OFF -DWITH_TLS=OFF -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_C_FLAGS=-fpic -DCMAKE_CXX_FLAGS=-fpic
 )
@@ -244,7 +248,13 @@ MERGE_STATIC_LIBRARIES(${FASTLIB} ALL "${LIBS}")
 
 # As librt should always be available it is linked dynamically and therefore has to be linked in applications
 # that use fast-lib as well.
-target_link_libraries(${FASTLIB} -lrt)
+if (UNIX AND NOT APPLE)
+	find_library(LIBRT rt)
+	if (LIBRT)
+		target_link_libraries(${FASTLIB} -lrt)
+	endif (LIBRT)
+endif (UNIX AND NOT APPLE)
+
 
 # Install
 install(TARGETS "${FASTLIB}"
