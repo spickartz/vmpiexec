@@ -14,6 +14,10 @@
 #include "vmpiexec/vmpiexec.hpp"
 
 #include <fast-lib/mqtt_communicator.hpp>
+#include <fast-lib/message/migfra/result.hpp>
+#include <fast-lib/message/migfra/task.hpp>
+
+extern std::vector<fast::msg::migfra::DHCP_info> glob_dhcp_pool;
 
 class virt_clusterT  {
   public:
@@ -27,13 +31,18 @@ class virt_clusterT  {
 	void stop();
 
 	// getters
-	// list of nodes within the virtual cluster
 	const host_listT &nodes;
+
   private:
-	host_listT _nodes;
-	const host_listT _hosts;
-	const size_t _doms_per_host;
-	std::shared_ptr<fast::MQTT_communicator> _comm;
+	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type) const;
+	std::vector<fast::msg::migfra::DHCP_info> get_dhcp_info_list(const size_t count) const;
+
+  private:
+	std::string _name; // a unique name of the virtual cluster instance
+	host_listT _nodes; // list of nodes within the virtual cluster
+	const host_listT _hosts; // list of physical hosts
+	const size_t _doms_per_host; // amount of domains per physical host
+	std::shared_ptr<fast::MQTT_communicator> _comm; // MQTT communicator
 };
 
 #endif /* end of include guard: vmpiexec_hpp */

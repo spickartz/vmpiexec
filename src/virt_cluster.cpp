@@ -13,23 +13,33 @@
 
 #include "vmpiexec/virt_cluster.hpp"
 
-#include <fast-lib/message/migfra/result.hpp>
-#include <fast-lib/message/migfra/task.hpp>
-
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(virt_cluster_log, "virt-cluster")
 FASTLIB_LOG_SET_LEVEL_GLOBAL(virt_cluster_log, trace);
 
+// TODO: retrieve DHCP list from other service
+std::vector<fast::msg::migfra::DHCP_info> virt_clusterT::get_dhcp_info_list(const size_t count) const {
+	return std::vector<fast::msg::migfra::DHCP_info>(glob_dhcp_pool.begin(), glob_dhcp_pool.begin() + count);
+}
 
-static
-std::shared_ptr<fast::msg::migfra::Start> generate_start_task(const std::string type) {
+// generates the Start_virt_cluster task
+std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_start_task(const std::string type) const {
+	// prepare IB device
 	std::vector<fast::msg::migfra::PCI_id> pci_ids;
 	pci_ids.emplace_back(0x15b3, 0x1004);
 
-	// TODO: add ivshmem device if count > 1
-	//
-	auto start_task = std::make_shared<fast::msg::migfra::Start>("dummy", 1, 16384, pci_ids, true);
-	start_task->transient = true;
+	auto start_task = std::make_shared<fast::msg::migfra::Start_virt_cluster>();
+	start_task->base_name = type;
+	start_task->pci_ids = std::move(pci_ids);
+	start_task->dhcp_info = get_dhcp_info_list(_nodes.size());
+
+	// add ivshmem device if count > 1
+	if (_doms_per_host > 1) {
+		fast::msg::migfra::Device_ivshmem ivshmem_device;
+	        ivshmem_device.id = "shmem0";
+		ivshmem_device.size = "512";
+		start_task->ivshmem = std::move(ivshmem_device);
+	}
 
 	return start_task;
 }
