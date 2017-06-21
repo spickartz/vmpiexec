@@ -72,7 +72,8 @@ void parse_cmd_options(int argc, char const *argv[]) {
 		FASTLIB_LOG(vmpiexec_log, trace) << "Hostlist (" << host_list.size() << "): " << host_list;
 
 		// create mpiexec call
-		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += " " + arg; });
+		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += arg + " "; });
+		mpiexec_args.pop_back();
 
 		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec" << mpiexec_args;
 	} catch (const std::exception &e) {
@@ -86,7 +87,10 @@ int main(int argc, char const *argv[]) {
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
 	virt_clusterT virt_cluster(host_list, doms_per_host);
-	virt_cluster.start();
+
+	std::string job_name = mpiexec_args.substr(0, mpiexec_args.find(" "));
+	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;
+	virt_cluster.start(job_name);
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
 	execute_command(virt_cluster.nodes, mpiexec_args);

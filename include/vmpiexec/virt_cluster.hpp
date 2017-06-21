@@ -25,7 +25,7 @@ class virt_clusterT  {
 	~virt_clusterT();
 
 	// start all domains and return the hostnames
-	void start();
+	void start(const std::string job_name);
 
 	// stop all domains
 	void stop();
@@ -35,6 +35,7 @@ class virt_clusterT  {
 
   private:
 	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type) const;
+	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type, const std::string shmem_id) const;
 	std::vector<fast::msg::migfra::DHCP_info> get_dhcp_info_list(const size_t count) const;
 
   private:

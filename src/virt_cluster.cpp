@@ -24,7 +24,7 @@ std::vector<fast::msg::migfra::DHCP_info> virt_clusterT::get_dhcp_info_list(cons
 }
 
 // generates the Start_virt_cluster task
-std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_start_task(const std::string type) const {
+std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_start_task(const std::string type, const std::string shmem_id) const {
 	// prepare IB device
 	std::vector<fast::msg::migfra::PCI_id> pci_ids;
 	pci_ids.emplace_back(0x15b3, 0x1004);
@@ -37,7 +37,7 @@ std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_s
 	// add ivshmem device if count > 1
 	if (_doms_per_host > 1) {
 		fast::msg::migfra::Device_ivshmem ivshmem_device;
-	        ivshmem_device.id = "shmem0";
+	        ivshmem_device.id = shmem_id;
 		ivshmem_device.size = "512";
 		start_task->ivshmem = std::move(ivshmem_device);
 	}
@@ -65,14 +65,14 @@ virt_clusterT::virt_clusterT(const host_listT host_list, const size_t doms_per_h
 virt_clusterT::~virt_clusterT() {}
 
 // start all domains and wait until ready
-void virt_clusterT::start() {
+void virt_clusterT::start(const std::string job_name) {
 	host_listT virt_cluster();
 
 	// request start of all domains on all nodes
 	for (const auto &host : _hosts) {
 		// create task container and add tasks per slot
 		fast::msg::migfra::Task_container m;
-		m.tasks.push_back(generate_start_task("centos"));
+		m.tasks.push_back(generate_start_task("centos", job_name));
 
 		// send start request
 		std::string topic = "fast/migfra/" + host + "/task";
