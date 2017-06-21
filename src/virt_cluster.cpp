@@ -19,6 +19,7 @@ FASTLIB_LOG_SET_LEVEL_GLOBAL(virt_cluster_log, trace);
 
 // TODO: retrieve DHCP list from other service
 std::vector<fast::msg::migfra::DHCP_info> virt_clusterT::get_dhcp_info_list(const size_t count) const {
+	FASTLIB_LOG(virt_cluster_log, trace) << "Virtual node count: " << count;
 	return std::vector<fast::msg::migfra::DHCP_info>(glob_dhcp_pool.begin(), glob_dhcp_pool.begin() + count);
 }
 
@@ -31,7 +32,7 @@ std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_s
 	auto start_task = std::make_shared<fast::msg::migfra::Start_virt_cluster>();
 	start_task->base_name = type;
 	start_task->pci_ids = std::move(pci_ids);
-	start_task->dhcp_info = get_dhcp_info_list(_nodes.size());
+	start_task->dhcp_info = get_dhcp_info_list(_doms_per_host*_hosts.size());
 
 	// add ivshmem device if count > 1
 	if (_doms_per_host > 1) {
