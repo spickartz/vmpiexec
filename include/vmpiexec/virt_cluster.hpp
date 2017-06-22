@@ -36,14 +36,15 @@ class virt_clusterT  {
   private:
 	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type) const;
 	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type, const std::string shmem_id) const;
-	std::vector<fast::msg::migfra::DHCP_info> get_dhcp_info_list(const size_t count) const;
+	void acquire_dhcp_info(const size_t count);
 
   private:
 	std::string _name; // a unique name of the virtual cluster instance
 	host_listT _nodes; // list of nodes within the virtual cluster
-	const host_listT _hosts; // list of physical hosts
+	host_listT _hosts; // list of physical hosts
 	const size_t _doms_per_host; // amount of domains per physical host
 	std::shared_ptr<fast::MQTT_communicator> _comm; // MQTT communicator
+	std::vector<fast::msg::migfra::DHCP_info> _dhcp_info; // DHCP info of the virtual cluster nodes
 };
 
 #endif /* end of include guard: vmpiexec_hpp */

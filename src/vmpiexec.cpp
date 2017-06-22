@@ -9,6 +9,7 @@
  */
 #include <arrrgh.hpp>
 #include <algorithm>
+#include <stdio.h>
 
 #include "vmpiexec/vmpiexec.hpp"
 #include "vmpiexec/virt_cluster.hpp"
@@ -37,7 +38,7 @@ void parse_cmd_options(int argc, char const *argv[]) {
 	try {
 		parser.parse(argc, argv);
 	} catch (const std::exception &e) {
-		std::cerr << "Error parsing arguments: " << e.what() << std::endl;
+		std::cerr << "ERROR: could not parse the arguments: " << e.what() << std::endl;
 		parser.show_usage(std::cerr);
 		exit(-1);
 	}
@@ -104,4 +105,23 @@ int main(int argc, char const *argv[]) {
 
 // call mpiexec and run app on virt_cluster
 void execute_command(host_listT virt_cluster, std::string mpiexec_args) {
+	FILE *in;
+	char buff[512];
+
+	std::stringstream cmd_stream;
+	cmd_stream << "mpiexec -np ";
+        cmd_stream << virt_cluster.size();
+	cmd_stream << "	" + mpiexec_args;
+
+	FASTLIB_LOG(vmpiexec_log, trace) << "Calling '" << cmd_stream.str() << "'";
+	if (!(in = popen(cmd_stream.str().c_str(), "r"))) {
+		std::cerr << "ERROR: could not execute '" << cmd_stream.str() << "'" <<	std::endl;
+		return;
+	}
+
+	while (fgets(buff, sizeof(buff), in) != NULL){
+		std::cout << buff;
+	}
+	std::cout << std::endl;
+	pclose(in);
 }

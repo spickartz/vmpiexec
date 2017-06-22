@@ -18,9 +18,17 @@ FASTLIB_LOG_INIT(virt_cluster_log, "virt-cluster")
 FASTLIB_LOG_SET_LEVEL_GLOBAL(virt_cluster_log, trace);
 
 // TODO: retrieve DHCP list from other service
-std::vector<fast::msg::migfra::DHCP_info> virt_clusterT::get_dhcp_info_list(const size_t count) const {
-	FASTLIB_LOG(virt_cluster_log, trace) << "Virtual node count: " << count;
-	return std::vector<fast::msg::migfra::DHCP_info>(glob_dhcp_pool.begin(), glob_dhcp_pool.begin() + count);
+void virt_clusterT::acquire_dhcp_info(const size_t count) {
+	// retrieve dhcp info
+	_dhcp_info = std::vector<fast::msg::migfra::DHCP_info>(glob_dhcp_pool.begin(), glob_dhcp_pool.begin() + count);
+
+	// set node list of virtual cluster
+	_nodes.reserve(count);
+	for (const auto &dhcp_info : _dhcp_info) {
+		_nodes.emplace_back(dhcp_info.hostname);
+	}
+
+	return;
 }
 
 // generates the Start_virt_cluster task
@@ -32,7 +40,7 @@ std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_s
 	auto start_task = std::make_shared<fast::msg::migfra::Start_virt_cluster>();
 	start_task->base_name = type;
 	start_task->pci_ids = std::move(pci_ids);
-	start_task->dhcp_info = get_dhcp_info_list(_doms_per_host*_hosts.size());
+	start_task->dhcp_info = _dhcp_info;
 
 	// add ivshmem device if count > 1
 	if (_doms_per_host > 1) {
@@ -67,6 +75,9 @@ virt_clusterT::~virt_clusterT() {}
 // start all domains and wait until ready
 void virt_clusterT::start(const std::string job_name) {
 	host_listT virt_cluster();
+
+	// determine DHCP info for virtual cluster nodes
+	acquire_dhcp_info(_doms_per_host*_hosts.size());
 
 	// request start of all domains on all nodes
 	for (const auto &host : _hosts) {
