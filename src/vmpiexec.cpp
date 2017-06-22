@@ -22,6 +22,7 @@ FASTLIB_LOG_SET_LEVEL_GLOBAL(vmpiexec_log, trace);
 static size_t num_procs = 1;
 static size_t doms_per_host = 1;
 static std::string mpiexec_args = "";
+static std::string mqtt_broker = "localhost";
 static host_listT host_list { "localhost" };
 
 // parse the command-line options
@@ -31,6 +32,7 @@ void parse_cmd_options(int argc, char const *argv[]) {
 
 	const auto &num_procs_arg = parser.add<size_t>("np", "Number of processes.", 'n', arrrgh::Optional);
 	const auto &host_list_arg = parser.add<std::string>("hosts", "A comma-seperated list of hosts.", 'H', arrrgh::Optional);
+	const auto &mqtt_broker_arg = parser.add<std::string>("broker", "Name of the MQTT broker to connect to.", 'b', arrrgh::Optional);
 	const auto &doms_per_host_arg =
 		parser.add<size_t>("doms-per-host", "The amount of domains created per node.", 'd', arrrgh::Optional);
 	const auto &help =
@@ -57,6 +59,9 @@ void parse_cmd_options(int argc, char const *argv[]) {
 		}
 		if (num_procs_arg.value()) {
 			num_procs = num_procs_arg.value();
+		}
+		if (mqtt_broker_arg.value().length() > 0) {
+			mqtt_broker = mqtt_broker_arg.value();
 		}
 
 		// parse host list
@@ -94,7 +99,7 @@ int main(int argc, char const *argv[]) {
 	parse_cmd_options(argc, argv);
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
-	virt_clusterT virt_cluster(host_list, doms_per_host);
+	virt_clusterT virt_cluster(host_list, doms_per_host, mqtt_broker);
 
 	std::string job_name = mpiexec_args.substr(0, mpiexec_args.find(" "));
 	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;

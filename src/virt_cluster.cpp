@@ -87,7 +87,7 @@ void virt_clusterT::start(const std::string job_name) {
 
 		// create task container and add tasks per slot
 		fast::msg::migfra::Task_container m;
-		m.tasks.push_back(generate_start_task("centos", job_name, std::vector<fast::msg::migfra::DHCP_info>(cur_pos, cur_pos + _doms_per_host)));
+		m.tasks.push_back(generate_start_task("virt-cluster-base", job_name, std::vector<fast::msg::migfra::DHCP_info>(cur_pos, cur_pos + _doms_per_host)));
 
 		// send start request
 		std::string topic = "fast/migfra/" + host + "/task";
