@@ -19,6 +19,7 @@ FASTLIB_LOG_INIT(vmpiexec_log, "vmpiexec")
 FASTLIB_LOG_SET_LEVEL_GLOBAL(vmpiexec_log, trace);
 
 // default command-line arguments
+static size_t num_procs = 1;
 static size_t doms_per_host = 1;
 static std::string mpiexec_args = "";
 static host_listT host_list { "localhost" };
@@ -28,6 +29,7 @@ void parse_cmd_options(int argc, char const *argv[]) {
 	// configure the parser
 	arrrgh::parser parser("vmpiexec", "An mpiexec for virtualized clusters.");
 
+	const auto &num_procs_arg = parser.add<size_t>("np", "Number of processes.", 'n', arrrgh::Optional);
 	const auto &host_list_arg = parser.add<std::string>("hosts", "A comma-seperated list of hosts.", 'H', arrrgh::Optional);
 	const auto &doms_per_host_arg =
 		parser.add<size_t>("doms-per-host", "The amount of domains created per node.", 'd', arrrgh::Optional);
@@ -50,7 +52,12 @@ void parse_cmd_options(int argc, char const *argv[]) {
 			exit(-1);
 		}
 
-		doms_per_host = doms_per_host_arg.value();
+		if (doms_per_host_arg.value()) {
+			doms_per_host = doms_per_host_arg.value();
+		}
+		if (num_procs_arg.value()) {
+			num_procs = num_procs_arg.value();
+		}
 
 		// parse host list
 		std::string host_list_str = host_list_arg.value();
@@ -108,10 +115,18 @@ void execute_command(host_listT virt_cluster, std::string mpiexec_args) {
 	FILE *in;
 	char buff[512];
 
+	// generate virtual node list
+	std::string node_list;
+	for (const auto &node : virt_cluster) {
+		node_list += node + ",";
+	}
+	node_list.pop_back();
+
 	std::stringstream cmd_stream;
 	cmd_stream << "mpiexec -np ";
-        cmd_stream << virt_cluster.size();
-	cmd_stream << "	" + mpiexec_args;
+	cmd_stream << num_procs;
+	cmd_stream << " -hosts " + node_list;
+	cmd_stream << " " + mpiexec_args;
 
 	FASTLIB_LOG(vmpiexec_log, trace) << "Calling '" << cmd_stream.str() << "'";
 	if (!(in = popen(cmd_stream.str().c_str(), "r"))) {
