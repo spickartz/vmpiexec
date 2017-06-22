@@ -34,8 +34,7 @@ class virt_clusterT  {
 	const host_listT &nodes;
 
   private:
-	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type) const;
-	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type, const std::string shmem_id) const;
+	std::shared_ptr<fast::msg::migfra::Start_virt_cluster> generate_start_task(const std::string type, const std::string shmem_id, const std::vector<fast::msg::migfra::DHCP_info> dhcp_info) const;
 	void acquire_dhcp_info(const size_t count);
 
   private:
