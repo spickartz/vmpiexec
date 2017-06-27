@@ -9,6 +9,8 @@
  */
 #include <arrrgh.hpp>
 #include <algorithm>
+
+#include <libgen.h>
 #include <stdio.h>
 
 #include "vmpiexec/vmpiexec.hpp"
@@ -24,6 +26,19 @@ static size_t doms_per_host = 1;
 static std::string mpiexec_args = "";
 static std::string mqtt_broker = "localhost";
 static host_listT host_list { "localhost" };
+
+// obtain basename from given path
+static
+std::string generate_basename(std::string path) {
+	char *path_cstr = new char[path.size() + 1];
+	std::copy(path.begin(), path.end(), path_cstr);
+	path_cstr[path.size()] = '\0';
+	std::string base_name = std::string(basename(path_cstr));
+	delete [] path_cstr;
+
+	return base_name;
+}
+
 
 // parse the command-line options
 void parse_cmd_options(int argc, char const *argv[]) {
@@ -98,9 +113,11 @@ int main(int argc, char const *argv[]) {
 	FASTLIB_LOG(vmpiexec_log, debug) << "Parsing command-line options ...";
 	parse_cmd_options(argc, argv);
 
-	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
-	std::string job_name = mpiexec_args.substr(0, mpiexec_args.find(" "));
+	// job_name = executable = ivshmem device name
+	std::string job_name = generate_basename(mpiexec_args.substr(0, mpiexec_args.find(" ")));
+
 	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;
+	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
 	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
 
 
