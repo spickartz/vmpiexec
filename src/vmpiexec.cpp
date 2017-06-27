@@ -99,17 +99,13 @@ int main(int argc, char const *argv[]) {
 	parse_cmd_options(argc, argv);
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
-	virt_clusterT virt_cluster(host_list, doms_per_host, mqtt_broker);
-
 	std::string job_name = mpiexec_args.substr(0, mpiexec_args.find(" "));
 	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;
-	virt_cluster.start(job_name);
+	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
+
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
 	execute_command(virt_cluster.nodes, mpiexec_args);
-
-	FASTLIB_LOG(vmpiexec_log, debug) << "Stopping virtual cluster ...";
-	virt_cluster.stop();
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Done!";
 	return 0;

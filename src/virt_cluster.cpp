@@ -54,9 +54,9 @@ std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_s
 }
 
 // constructor
-virt_clusterT::virt_clusterT(const host_listT host_list, const size_t doms_per_host, const std::string mqtt_broker,
+virt_clusterT::virt_clusterT(const std::string job_name, const host_listT host_list, const size_t doms_per_host, const std::string mqtt_broker,
 							 const int mqtt_port)
-	: nodes(_nodes), _hosts(host_list), _doms_per_host(doms_per_host) {
+	: nodes(_nodes), _job_name(job_name), _hosts(host_list), _doms_per_host(doms_per_host) {
 
 	// initialize MQTT communicator
 	_comm = std::make_shared<fast::MQTT_communicator>("vmpiexec", "", mqtt_broker, mqtt_port, 60, fast::MQTT_communicator::timeout_duration_t(2));
@@ -67,13 +67,18 @@ virt_clusterT::virt_clusterT(const host_listT host_list, const size_t doms_per_h
 		_comm->add_subscription(topic);
 	}
 
+	// start the domains of the virtual cluster
+	start();
 }
 
 // destructor
-virt_clusterT::~virt_clusterT() {}
+virt_clusterT::~virt_clusterT() {
+	// stop the domains of the virtual cluster
+	stop();
+}
 
 // start all domains and wait until ready
-void virt_clusterT::start(const std::string job_name) {
+void virt_clusterT::start() {
 	host_listT virt_cluster();
 
 	// determine DHCP info for virtual cluster nodes
@@ -87,7 +92,7 @@ void virt_clusterT::start(const std::string job_name) {
 
 		// create task container and add tasks per slot
 		fast::msg::migfra::Task_container m;
-		m.tasks.push_back(generate_start_task("virt-cluster-base", job_name, std::vector<fast::msg::migfra::DHCP_info>(cur_pos, cur_pos + _doms_per_host)));
+		m.tasks.push_back(generate_start_task("virt-cluster-base", _job_name, std::vector<fast::msg::migfra::DHCP_info>(cur_pos, cur_pos + _doms_per_host)));
 
 		// send start request
 		std::string topic = "fast/migfra/" + host + "/task";
