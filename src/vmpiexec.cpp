@@ -36,7 +36,7 @@ void parse_cmd_options(int argc, char const *argv[]) {
 	const auto &doms_per_host_arg =
 		parser.add<size_t>("doms-per-host", "The amount of domains created per node.", 'd', arrrgh::Optional);
 	const auto &help =
-		parser.add<bool>("help", "PRint this help message.", 'h', arrrgh::Optional);
+		parser.add<bool>("help", "Print this help message.", 'h', arrrgh::Optional);
 
 	// parse the options
 	try {
