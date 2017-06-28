@@ -125,6 +125,7 @@ int main(int argc, char const *argv[]) {
 	execute_command(virt_cluster.nodes, mpiexec_args);
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Done!";
+
 	return 0;
 }
 

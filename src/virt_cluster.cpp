@@ -31,13 +31,13 @@ void virt_clusterT::acquire_dhcp_info(const size_t count) {
 	return;
 }
 
-// generates the Start_virt_cluster task
-std::shared_ptr<fast::msg::migfra::Start_virt_cluster> virt_clusterT::generate_start_task(const std::string type, const std::string shmem_id, const std::vector<fast::msg::migfra::DHCP_info> dhcp_info) const {
+// generates the Start task for a virtual cluster
+std::shared_ptr<fast::msg::migfra::Start> virt_clusterT::generate_start_task(const std::string type, const std::string shmem_id, const std::vector<fast::msg::migfra::DHCP_info> dhcp_info) const {
 	// prepare IB device
 	std::vector<fast::msg::migfra::PCI_id> pci_ids;
 	pci_ids.emplace_back(0x15b3, 0x1004);
 
-	auto start_task = std::make_shared<fast::msg::migfra::Start_virt_cluster>();
+	auto start_task = std::make_shared<fast::msg::migfra::Start>();
 	start_task->base_name = type;
 	start_task->pci_ids = std::move(pci_ids);
 	start_task->dhcp_info = dhcp_info;
@@ -126,7 +126,7 @@ void virt_clusterT::stop() {
 		fast::msg::migfra::Task_container m;
 		auto task = std::make_shared<fast::msg::migfra::Stop>();
 		task->regex = ".*";
-		task->force = true;
+		task->force = false;
 		task->concurrent_execution = true;
 		m.tasks.push_back(task);
 
