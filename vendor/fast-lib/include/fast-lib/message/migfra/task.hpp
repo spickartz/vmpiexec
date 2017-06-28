@@ -10,8 +10,8 @@
 #define FAST_LIB_MESSAGE_MIGFRA_TASK_HPP
 
 #include <fast-lib/message/migfra/ivshmem.hpp>
-#include <fast-lib/message/migfra/pci_id.hpp>
 #include <fast-lib/message/migfra/dhcp_info.hpp>
+#include <fast-lib/message/migfra/pci_id.hpp>
 #include <fast-lib/message/migfra/time_measurement.hpp>
 #include <fast-lib/optional.hpp>
 #include <fast-lib/serializable.hpp>
@@ -117,32 +117,16 @@ struct Start :
 	void load(const YAML::Node &node) override;
 
 	Optional<std::string> vm_name;
+	Optional<std::string> base_name;
 	Optional<unsigned int> vcpus;
 	Optional<unsigned long> memory;
 	Optional<std::vector<std::vector<unsigned int>>> memnode_map;
+	std::vector<DHCP_info> dhcp_info;
 	std::vector<PCI_id> pci_ids;
 	Optional<std::string> xml;
 	Optional<Device_ivshmem> ivshmem;
 	Optional<bool> transient;
 	Optional<std::vector<std::vector<unsigned int>>> vcpu_map;
-};
-
-/**
- * \brief Task to start a set of domains based on a goalden image
- */
-struct Start_virt_cluster :
-	public Task
-{
-	Start_virt_cluster();
-
-	YAML::Node emit() const override;
-	void load(const YAML::Node &node) override;
-
-	std::string base_name;
-	std::vector<DHCP_info> dhcp_info;
-	Optional<unsigned long> memory;
-	std::vector<PCI_id> pci_ids;
-	Optional<Device_ivshmem> ivshmem;
 };
 
 /**
@@ -309,7 +293,6 @@ struct Quit :
 YAML_CONVERT_IMPL(fast::msg::migfra::Task)
 YAML_CONVERT_IMPL(fast::msg::migfra::Task_container)
 YAML_CONVERT_IMPL(fast::msg::migfra::Start)
-YAML_CONVERT_IMPL(fast::msg::migfra::Start_virt_cluster)
 YAML_CONVERT_IMPL(fast::msg::migfra::Stop)
 YAML_CONVERT_IMPL(fast::msg::migfra::Swap_with)
 YAML_CONVERT_IMPL(fast::msg::migfra::Migrate)
