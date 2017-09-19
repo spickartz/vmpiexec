@@ -116,11 +116,15 @@ void parse_cmd_options(int argc, char const *argv[]) {
 
 		// create mpiexec call
 		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += arg + " "; });
+		if (mpiexec_args.size() == 0)
+			throw std::runtime_error("No command to execute was passed.");
 		mpiexec_args.pop_back();
 
-		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec" << mpiexec_args;
+		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec " << mpiexec_args;
 	} catch (const std::exception &e) {
 		std::cerr << "Error reading argument values: " << e.what() << std::endl;
+		parser.show_usage(std::cerr);
+		exit(-1);
 	}
 }
 
