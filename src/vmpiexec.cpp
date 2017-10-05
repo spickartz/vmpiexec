@@ -10,30 +10,17 @@
 
 #include "vmpiexec/vmpiexec.hpp"
 #include "vmpiexec/virt_cluster.hpp"
+#include "vmpiexec/sigint_handler.hpp"
 
 #include <arrrgh.hpp>
 #include <libgen.h>
 
 #include <algorithm>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
-#include <future>
-#include <csignal>
 #include <cstdio>
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(vmpiexec_log, "vmpiexec")
 FASTLIB_LOG_SET_LEVEL_GLOBAL(vmpiexec_log, trace);
-
-// quit_cv is notified by sigint signal. Causes process to quit gracefully.
-std::condition_variable quit_cv;
-std::mutex quit_mutex;
-std::atomic<bool> quit_flag(false);
-void quit_signal_handler(int) {
-	quit_flag.store(true);
-	quit_cv.notify_all();
-}
 
 // default command-line arguments
 static size_t num_procs = 1;
@@ -53,7 +40,6 @@ std::string generate_basename(std::string path) {
 
 	return base_name;
 }
-
 
 // parse the command-line options
 void parse_cmd_options(int argc, char const *argv[]) {
@@ -129,26 +115,11 @@ void parse_cmd_options(int argc, char const *argv[]) {
 }
 
 int main(int argc, char const *argv[]) {
-	// Register sigint handler which is setting the global quit flag and notifies to exit.
-	struct sigaction sa;
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = quit_signal_handler;
-	sigfillset(&sa.sa_mask);
-	sigaction(SIGINT, &sa, nullptr);
-	int return_status = EXIT_FAILURE;
-	auto handle = std::async(std::launch::async, [&return_status]{
-		std::unique_lock<std::mutex> lock(quit_mutex);
-		quit_cv.wait(lock, []{return quit_flag.load();});
-		FASTLIB_LOG(vmpiexec_log, info) << "Shutting down virtual cluster ...";
-		exit(return_status);
-	});
-
 	// Parse command-line options
 	FASTLIB_LOG(vmpiexec_log, debug) << "Parsing command-line options ...";
 	parse_cmd_options(argc, argv);
 
-	// Generate job name
-//	job_name = executable = ivshmem device name
+	// Generate job name (job_name = executable = ivshmem device name)
 	std::string job_name = generate_basename(mpiexec_args.substr(0, mpiexec_args.find(" ")));
 
 	// Start virtual cluster
@@ -156,13 +127,15 @@ int main(int argc, char const *argv[]) {
 	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
 	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
 
+	// Handle sigint (graceful shutdown on ctrl+c)
+	Sigint_handler sigint_handler(std::bind(std::mem_fn(&virt_clusterT::stop), &virt_cluster));
+
 	// Execute command
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
 	execute_command(virt_cluster.nodes, mpiexec_args);
 
 	FASTLIB_LOG(vmpiexec_log, debug) << "Done!";
-	return_status = EXIT_SUCCESS;
-	quit_signal_handler(0);
+
 	return 0;
 }
 

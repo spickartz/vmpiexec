@@ -98,7 +98,7 @@ include_directories(vendor/optionparser/include)
 
 ########
 # Compiling and linking
-add_executable(vmpiexec src/vmpiexec.cpp src/virt_cluster.cpp src/dhcp_pool.cpp)
+add_executable(vmpiexec src/vmpiexec.cpp src/virt_cluster.cpp src/dhcp_pool.cpp src/sigint_handler.cpp)
 add_dependencies(vmpiexec libfast)
 target_link_libraries(vmpiexec fastlib ${CMAKE_THREAD_LIBS_INIT})
 set_property(TARGET vmpiexec PROPERTY C_STANDARD 99)
