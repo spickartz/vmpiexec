@@ -19,18 +19,20 @@
 #include <functional>
 
 /**
- * \brief This class ensures that deconstructors are called on sigint to shutdown gracefully.
+ * \brief This class ensures that cleanup_func is called on first sigint to shutdown gracefully.
+ *
+ * If sigint is received, cleanup_func is called. After that exit() is called..
+ * If another sigint is received while cleanup_func is executed, exit() is called immediately.
  */
 class Sigint_handler
 {
 public:
 	/**
-	 * The constructor creates a waiting thread and registers a callback on sigint.
+	 * The constructor registers a callback on sigint and creates a thread waiting on notification by the callback.
 	 *
-	 * The callback on sigint sets the sigint_flag and notifies the waiting thread.
-	 * Also, the destructor may notify the waiting thread.
-	 * On notification the waiting thread checks the sigint_flag.
-	 * If it is set, the cleanup_func is called and the program terminated, else the thread quits.
+	 * On notification due to sigint, the waiting thread calls cleanup_func and exits afterwards
+	 * (or immediately on a second sigint).
+	 * Also, the destructor may notify without sigint received to signal termination of the waiting thread.
 	 */
 	Sigint_handler(std::function<void()> cleanup_func);
 	/**
@@ -41,11 +43,14 @@ private:
 	void register_sigint_callback();
 	void thread_func();
 
-	static void sigint_received();
+	static void set_sigint_flag();
 	static void notify_thread();
+	static void wait_for_notify(std::unique_lock<std::mutex> lock = std::unique_lock<std::mutex>(notify_mutex));
+	static void reset_flags();
 	static void sigint_callback(int);
 
 	int return_status;
+	bool cleaning;
 	std::function<void()> cleanup_func;
 	// Handle for the waiting thread
 	std::future<void> thread_handle;
