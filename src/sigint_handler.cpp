@@ -27,10 +27,9 @@ Sigint_handler::Sigint_handler(std::function<void()> cleanup_func) :
 // TODO: Reregister old callback function
 Sigint_handler::~Sigint_handler()
 {
-	if (cleaning)
-		wait_for_notify();
-	// No sigint received. Just notify the thread to quit.
-	notify_thread();
+	// If no sigint received, just notify the thread to quit.
+	if (!cleaning)
+		notify_thread();
 }
 
 // TODO: Save old callback function
