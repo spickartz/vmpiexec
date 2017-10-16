@@ -128,7 +128,7 @@ int main(int argc, char const *argv[]) {
 	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
 
 	// Handle sigint (graceful shutdown on ctrl+c)
-	Sigint_handler sigint_handler(std::bind(std::mem_fn(&virt_clusterT::stop), &virt_cluster));
+	Sigint_handler sigint_handler([&]{virt_cluster.stop();});
 
 	// Execute command
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";

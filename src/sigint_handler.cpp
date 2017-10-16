@@ -15,7 +15,6 @@ std::condition_variable Sigint_handler::notify_cv;
 std::mutex Sigint_handler::notify_mutex;
 
 Sigint_handler::Sigint_handler(std::function<void()> cleanup_func) :
-	return_status(EXIT_FAILURE),
 	cleaning(false),
 	cleanup_func(cleanup_func),
 	thread_handle(std::async(std::launch::async, &Sigint_handler::thread_func, this))
@@ -64,13 +63,8 @@ void Sigint_handler::thread_func()
 			FASTLIB_LOG(sigint_handler_log, info) << "Forced termination. Calling exit...";
 		else
 			FASTLIB_LOG(sigint_handler_log, info) << "Everything cleaned up. Calling exit...";
-		exit(return_status);
+		exit(EXIT_FAILURE);
 	}
-}
-
-void Sigint_handler::set_sigint_flag()
-{
-	sigint_flag.store(true);
 }
 
 void Sigint_handler::notify_thread()
@@ -91,6 +85,6 @@ void Sigint_handler::reset_flags()
 }
 
 void Sigint_handler::sigint_callback(int) {
-	set_sigint_flag();
+	sigint_flag.store(true);
 	notify_thread();
 }

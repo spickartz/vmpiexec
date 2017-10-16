@@ -15,8 +15,8 @@
 #include <condition_variable>
 #include <atomic>
 #include <future>
-#include <csignal>
 #include <functional>
+#include <csignal>
 
 /**
  * \brief This class ensures that cleanup_func is called on first sigint to shutdown gracefully.
@@ -49,7 +49,6 @@ private:
 	static void reset_flags();
 	static void sigint_callback(int);
 
-	int return_status;
 	bool cleaning;
 	std::function<void()> cleanup_func;
 	// Handle for the waiting thread
