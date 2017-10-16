@@ -120,8 +120,10 @@ void virt_clusterT::start() {
 
 // stop all domains and wait until ready
 void virt_clusterT::stop() {
+	FASTLIB_LOG(virt_cluster_log, debug) << "Stopping virtual cluster...";
 	// request stop of all domains on all hosts
 	for (const auto &host : _hosts) {
+		FASTLIB_LOG(virt_cluster_log, debug) << "Stopping virtual cluster on host " << host;
 		// generate stop tasks
 		fast::msg::migfra::Task_container m;
 		auto task = std::make_shared<fast::msg::migfra::Stop>();
@@ -130,6 +132,7 @@ void virt_clusterT::stop() {
 		task->concurrent_execution = true;
 		m.tasks.push_back(task);
 
+		FASTLIB_LOG(virt_cluster_log, debug) << "Sending generated stop task... ";
 		// send stop request
 		std::string topic = "fast/migfra/" + host + "/task";
 		FASTLIB_LOG(virt_cluster_log, debug) << "sending message \n topic: " << topic << "\n message:\n"
@@ -137,6 +140,7 @@ void virt_clusterT::stop() {
 		_comm->send_message(m.to_string(), topic);
 	}
 
+	FASTLIB_LOG(virt_cluster_log, debug) << "Wait for completion... ";
 	// wait for completion
 	fast::msg::migfra::Result_container response;
 	for (const auto &host : _hosts) {

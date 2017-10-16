@@ -7,14 +7,16 @@
  * Licensed under GNU General Public License 2.0 or later.
  * Some rights reserved. See LICENSE
  */
-#include <arrrgh.hpp>
-#include <algorithm>
-
-#include <libgen.h>
-#include <stdio.h>
 
 #include "vmpiexec/vmpiexec.hpp"
 #include "vmpiexec/virt_cluster.hpp"
+#include "vmpiexec/sigint_handler.hpp"
+
+#include <arrrgh.hpp>
+#include <libgen.h>
+
+#include <algorithm>
+#include <cstdio>
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(vmpiexec_log, "vmpiexec")
@@ -38,7 +40,6 @@ std::string generate_basename(std::string path) {
 
 	return base_name;
 }
-
 
 // parse the command-line options
 void parse_cmd_options(int argc, char const *argv[]) {
@@ -101,26 +102,35 @@ void parse_cmd_options(int argc, char const *argv[]) {
 
 		// create mpiexec call
 		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += arg + " "; });
+		if (mpiexec_args.size() == 0)
+			throw std::runtime_error("No command to execute was passed.");
 		mpiexec_args.pop_back();
 
-		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec" << mpiexec_args;
+		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec " << mpiexec_args;
 	} catch (const std::exception &e) {
 		std::cerr << "Error reading argument values: " << e.what() << std::endl;
+		parser.show_usage(std::cerr);
+		exit(-1);
 	}
 }
 
 int main(int argc, char const *argv[]) {
+	// Parse command-line options
 	FASTLIB_LOG(vmpiexec_log, debug) << "Parsing command-line options ...";
 	parse_cmd_options(argc, argv);
 
-	// job_name = executable = ivshmem device name
+	// Generate job name (job_name = executable = ivshmem device name)
 	std::string job_name = generate_basename(mpiexec_args.substr(0, mpiexec_args.find(" ")));
 
+	// Start virtual cluster
 	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;
 	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
 	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
 
+	// Handle sigint (graceful shutdown on ctrl+c)
+	Sigint_handler sigint_handler([&]{virt_cluster.stop();});
 
+	// Execute command
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
 	execute_command(virt_cluster.nodes, mpiexec_args);
 
