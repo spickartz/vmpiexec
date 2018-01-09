@@ -7,12 +7,16 @@
  * Licensed under GNU General Public License 2.0 or later.
  * Some rights reserved. See LICENSE
  */
-#include <arrrgh.hpp>
-#include <algorithm>
-#include <stdio.h>
 
 #include "vmpiexec/vmpiexec.hpp"
 #include "vmpiexec/virt_cluster.hpp"
+#include "vmpiexec/sigint_handler.hpp"
+
+#include <arrrgh.hpp>
+#include <libgen.h>
+
+#include <algorithm>
+#include <cstdio>
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(vmpiexec_log, "vmpiexec")
@@ -24,6 +28,18 @@ static size_t doms_per_host = 1;
 static std::string mpiexec_args = "";
 static std::string mqtt_broker = "localhost";
 static host_listT host_list { "localhost" };
+
+// obtain basename from given path
+static
+std::string generate_basename(std::string path) {
+	char *path_cstr = new char[path.size() + 1];
+	std::copy(path.begin(), path.end(), path_cstr);
+	path_cstr[path.size()] = '\0';
+	std::string base_name = std::string(basename(path_cstr));
+	delete [] path_cstr;
+
+	return base_name;
+}
 
 // parse the command-line options
 void parse_cmd_options(int argc, char const *argv[]) {
@@ -86,32 +102,40 @@ void parse_cmd_options(int argc, char const *argv[]) {
 
 		// create mpiexec call
 		parser.each_unlabeled_argument([](const std::string &arg) { mpiexec_args += arg + " "; });
+		if (mpiexec_args.size() == 0)
+			throw std::runtime_error("No command to execute was passed.");
 		mpiexec_args.pop_back();
 
-		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec" << mpiexec_args;
+		FASTLIB_LOG(vmpiexec_log, trace) << "Calling: mpiexec " << mpiexec_args;
 	} catch (const std::exception &e) {
 		std::cerr << "Error reading argument values: " << e.what() << std::endl;
+		parser.show_usage(std::cerr);
+		exit(-1);
 	}
 }
 
 int main(int argc, char const *argv[]) {
+	// Parse command-line options
 	FASTLIB_LOG(vmpiexec_log, debug) << "Parsing command-line options ...";
 	parse_cmd_options(argc, argv);
 
-	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
-	virt_clusterT virt_cluster(host_list, doms_per_host, mqtt_broker);
+	// Generate job name (job_name = executable = ivshmem device name)
+	std::string job_name = generate_basename(mpiexec_args.substr(0, mpiexec_args.find(" ")));
 
-	std::string job_name = mpiexec_args.substr(0, mpiexec_args.find(" "));
+	// Start virtual cluster
 	FASTLIB_LOG(vmpiexec_log, trace) << "Executable: " + job_name;
-	virt_cluster.start(job_name);
+	FASTLIB_LOG(vmpiexec_log, debug) << "Starting virtual cluster ...";
+	virt_clusterT virt_cluster(job_name, host_list, doms_per_host, mqtt_broker);
 
+	// Handle sigint (graceful shutdown on ctrl+c)
+	Sigint_handler sigint_handler([&]{virt_cluster.stop();});
+
+	// Execute command
 	FASTLIB_LOG(vmpiexec_log, debug) << "Executing command ...";
 	execute_command(virt_cluster.nodes, mpiexec_args);
 
-	FASTLIB_LOG(vmpiexec_log, debug) << "Stopping virtual cluster ...";
-	virt_cluster.stop();
-
 	FASTLIB_LOG(vmpiexec_log, debug) << "Done!";
+
 	return 0;
 }
 
