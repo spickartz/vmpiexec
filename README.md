@@ -3,7 +3,7 @@
 A startup command for MPI programms on virtualized clusters.
 
 vmpiexec works like other startup mechanisms of common MPI implementations with the execption that it embedds the processes within isolated domains (e.g., virtual machines).
-Currently, it relies on the [migration-framework](https://github.com/rwth-os/migration-framework) for the management of domains and on [ParaStation~MPI](https://github.com/parastation)
+Currently, it relies on the [migration-framework](https://github.com/rwth-os/migration-framework) for the management of domains and on [ParaStation MPI](https://github.com/parastation)
 as MPI distribution.
 
 
